@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart IT Helpdesk</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+  <!-- Navbar -->
+  <header class="bg-indigo-700 text-white shadow sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <span class="text-xl font-bold tracking-wide">Smart IT Helpdesk</span>
+        <span class="text-xs bg-indigo-500 px-2 py-0.5 rounded text-indigo-100">Live Demo</span>
+      </div>
+      <span class="text-sm">ผู้ใช้งาน: <strong class="text-indigo-200">ผู้ใช้งาน ทดสอบ</strong></span>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- แผงสถิติด่วน -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+        <div>
+          <p class="text-xs text-slate-500">รอดำเนินการ (Open)</p>
+          <p id="stat-open" class="text-2xl font-bold text-amber-600">0</p>
+        </div>
+        <div class="p-2 bg-amber-50 rounded-lg text-amber-600 text-xl">⏳</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+        <div>
+          <p class="text-xs text-slate-500">กำลังซ่อม (In Progress)</p>
+          <p id="stat-prog" class="text-2xl font-bold text-blue-600">0</p>
+        </div>
+        <div class="p-2 bg-blue-50 rounded-lg text-blue-600 text-xl">🛠️</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+        <div>
+          <p class="text-xs text-slate-500">เสร็จสิ้นแล้ว (Closed)</p>
+          <p id="stat-close" class="text-2xl font-bold text-emerald-600">0</p>
+        </div>
+        <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600 text-xl">✅</div>
+      </div>
+    </div>
+
+    <!-- ฟอร์มแจ้งซ่อม (สำหรับ User) -->
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <span class="w-2.5 h-2.5 bg-indigo-600 rounded-full"></span> แจ้งปัญหา / ซ่อมบำรุง
+      </h2>
+      <form id="ticketForm" onsubmit="handleCreate(event)" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <label class="block text-slate-600 font-medium mb-1">หัวข้อปัญหา *</label>
+            <input id="title" required class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น คอมพิวเตอร์เปิดไม่ติด">
+          </div>
+          <div>
+            <label class="block text-slate-600 font-medium mb-1">หมวดหมู่งานซ่อม *</label>
+            <select id="category_id" required class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="" disabled selected>-- กำลังโหลดตัวเลือก... --</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-600 font-medium mb-1">สถานที่ตั้ง (อาคารและห้อง) *</label>
+            <select id="location_id" required class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="" disabled selected>-- กำลังโหลดตัวเลือก... --</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-600 font-medium mb-1">ระดับความเร่งด่วน</label>
+            <select id="priority" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="Low">ต่ำ (Low)</option>
+              <option value="Medium" selected>ปานกลาง (Medium)</option>
+              <option value="High">สูง (High)</option>
+              <option value="Urgent">เร่งด่วนที่สุด (Urgent)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-600 font-medium mb-1">รายละเอียดอาการเพิ่มเติม</label>
+          <textarea id="description" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ระบุอาการผิดปกติ"></textarea>
+        </div>
+        <button type="submit" class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 font-medium transition text-sm shadow">
+          บันทึกและส่งเรื่องแจ้งซ่อม
+        </button>
+      </form>
+    </div>
+
+    <!-- ตารางงานซ่อมทั้งหมด (Technician & User Tracker) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+        <h3 class="font-bold text-slate-800">รายการแจ้งซ่อมทั้งหมดในระบบ</h3>
+        <button onclick="loadData()" class="text-xs text-indigo-600 hover:underline">รีเฟรชข้อมูล</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-100 text-slate-600 border-b">
+            <tr>
+              <th class="p-3">ID</th>
+              <th class="p-3">ปัญหา / หมวดหมู่</th>
+              <th class="p-3">สถานที่</th>
+              <th class="p-3">ระดับความสำคัญ</th>
+              <th class="p-3">สถานะ</th>
+              <th class="p-3">การดำเนินการ (จำลองช่าง)</th>
+            </tr>
+          </thead>
+          <tbody id="ticketList" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // ตัวแปรเก็บรายการตารางสำหรับการทดสอบแบบไม่มี Backend
+    let mockTickets = [];
+
+    async function init() {
+      // ข้อมูลตัวเลือกสำรอง หากไม่พบ api.php
+      const defaultMeta = {
+        categories: [
+          { id: 1, name: "คอมพิวเตอร์ และ อุปกรณ์ต่อพ่วง (Hardware)" },
+          { id: 2, name: "โปรแกรม และ ระบบปฏิบัติการ (Software)" },
+          { id: 3, name: "เครือข่าย และ อินเทอร์เน็ต (Network / Wi-Fi)" },
+          { id: 4, name: "ระบบอีเมล และ บัญชีผู้ใช้ (Account / Email)" },
+          { id: 5, name: "เครื่องพิมพ์ และ สแกนเนอร์ (Printer / Scanner)" }
+        ],
+        locations: [
+          { id: 1, building: "อาคาร 1", room: "ห้องประชุมใหญ่ (ชั้น 2)" },
+          { id: 2, building: "อาคาร 1", room: "สำนักงานฝ่ายบุคคล (ชั้น 3)" },
+          { id: 3, building: "อาคาร 2", room: "ห้องปฏิบัติการคอมพิวเตอร์ 1" },
+          { id: 4, building: "อาคาร 2", room: "ฝ่ายบัญชีและการเงิน" },
+          { id: 5, building: "อาคารสำนักงานใหญ่", room: "แผนกการตลาด" }
+        ]
+      };
+
+      try {
+        const res = await fetch('api.php?action=meta');
+        if (!res.ok) throw new Error('API Unavailable');
+        const meta = await res.json();
+        renderDropdowns(meta);
+      } catch (err) {
+        // ใช้ตัวเลือกสำรองกรณีที่ยังไม่ได้ต่อ Database หรือไม่มี api.php
+        renderDropdowns(defaultMeta);
+      }
+
+      loadData();
+    }
+
+    function renderDropdowns(meta) {
+      const catSelect = document.getElementById('category_id');
+      const locSelect = document.getElementById('location_id');
+
+      catSelect.innerHTML = '<option value="" disabled selected>-- เลือกหมวดหมู่งานซ่อม --</option>' + 
+        meta.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+      locSelect.innerHTML = '<option value="" disabled selected>-- เลือกสถานที่ตั้ง --</option>' + 
+        meta.locations.map(l => `<option value="${l.id}">${l.building} - ${l.room}</option>`).join('');
+    }
+
+    async function loadData() {
+      let tickets = [];
+
+      try {
+        const res = await fetch('api.php?action=tickets');
+        if (!res.ok) throw new Error('API Unavailable');
+        tickets = await res.json();
+      } catch (err) {
+        // หากไม่มี backend จะใช้ข้อมูลจำลองในหน่วยความจำ
+        tickets = mockTickets;
+      }
+
+      // อัปเดตตัวเลข Dashboard
+      document.getElementById('stat-open').innerText = tickets.filter(t => t.status === 'Open').length;
+      document.getElementById('stat-prog').innerText = tickets.filter(t => t.status === 'InProgress').length;
+      document.getElementById('stat-close').innerText = tickets.filter(t => t.status === 'Closed').length;
+
+      const tbody = document.getElementById('ticketList');
+      if (tickets.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">ยังไม่มีรายการแจ้งซ่อม</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = tickets.map(t => {
+        let badgeColor = 'bg-slate-100 text-slate-700';
+        if (t.status === 'Open') badgeColor = 'bg-amber-100 text-amber-800';
+        if (t.status === 'InProgress') badgeColor = 'bg-blue-100 text-blue-800';
+        if (t.status === 'Closed') badgeColor = 'bg-emerald-100 text-emerald-800';
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-3 font-semibold text-slate-500">#${t.id}</td>
+            <td class="p-3">
+              <p class="font-medium text-slate-800">${t.title}</p>
+              <span class="text-xs text-slate-500">${t.category_name}</span>
+            </td>
+            <td class="p-3 text-slate-600">${t.location_name}</td>
+            <td class="p-3">
+              <span class="text-xs font-semibold ${t.priority === 'Urgent' ? 'text-red-600 font-bold' : 'text-slate-600'}">${t.priority}</span>
+            </td>
+            <td class="p-3">
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">${t.status}</span>
+            </td>
+            <td class="p-3 space-x-1">
+              ${t.status === 'Open' ? `<button onclick="updateStatus(${t.id}, 'InProgress')" class="text-xs bg-blue-600 text-white px-2.5 py-1 rounded hover:bg-blue-700">รับงาน</button>` : ''}
+              ${t.status === 'InProgress' ? `<button onclick="updateStatus(${t.id}, 'Closed')" class="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded hover:bg-emerald-700">ปิดงาน</button>` : ''}
+              ${t.status === 'Closed' ? `<span class="text-xs text-slate-400">เสร็จสมบูรณ์</span>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function handleCreate(e) {
+      e.preventDefault();
+
+      const catElem = document.getElementById('category_id');
+      const locElem = document.getElementById('location_id');
+
+      const payload = {
+        title: document.getElementById('title').value,
+        category_id: catElem.value,
+        category_name: catElem.options[catElem.selectedIndex].text,
+        location_id: locElem.value,
+        location_name: locElem.options[locElem.selectedIndex].text,
+        priority: document.getElementById('priority').value,
+        description: document.getElementById('description').value
+      };
+
+      try {
+        const res = await fetch('api.php?action=create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('API Unavailable');
+      } catch (err) {
+        // บันทึกลงในข้อมูลจำลองชั่วคราวกรณีไร้ backend
+        mockTickets.push({
+          id: mockTickets.length + 1,
+          ...payload,
+          status: 'Open'
+        });
+      }
+
+      document.getElementById('ticketForm').reset();
+      loadData();
+    }
+
+    async function updateStatus(id, status) {
+      try {
+        const res = await fetch('api.php?action=update_status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, status })
+        });
+        if (!res.ok) throw new Error('API Unavailable');
+      } catch (err) {
+        // อัปเดตสถานะตัวอย่างใน mockTickets
+        const item = mockTickets.find(t => t.id === id);
+        if (item) item.status = status;
+      }
+
+      loadData();
+    }
+
+    init();
+  </script>
+</body>
+</html>
